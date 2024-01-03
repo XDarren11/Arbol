@@ -17,5 +17,6 @@ public enum TipoToken {
     AND, ELSE, FALSE, FUN, FOR, IF, NULL, OR,
     PRINT, RETURN, TRUE, VAR, WHILE, ERROR_LEXICAL,
 
+    CLASS,
     error, EOF
 }
