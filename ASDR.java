@@ -1,8 +1,6 @@
-package interpreter;
-
 import java.util.List;
 
-public class ASDR implements Parser {
+public class ASDR implements parser {
 
     private int i = 0;
     private boolean hayErrores = false;
@@ -232,7 +230,6 @@ public class ASDR implements Parser {
                 || preanalisis.tipo == TipoToken.LEFT_PAREN) {
             EXPRESSION();
         }
-        // EPSILON
     }
 
     void IF_STMT() {
@@ -324,7 +321,6 @@ public class ASDR implements Parser {
                 || preanalisis.tipo == TipoToken.LEFT_PAREN) {
             EXPRESSION();
         }
-        // EPSILON
 
     }
 
@@ -558,7 +554,6 @@ public class ASDR implements Parser {
                         + ". Se esperaba '('.");
             }
         }
-        // epsilon
     }
 
     public void PRIMARY() {
@@ -663,7 +658,6 @@ public class ASDR implements Parser {
                         + ". Se esperaba 'identifier'.");
             }
         }
-        // epsilon
     }
 
     private void ARGUMENTS_OPC() {
@@ -681,7 +675,6 @@ public class ASDR implements Parser {
             EXPRESSION();
             ARGUMENTS();
         }
-        // epsilon
     }
 
     private void match(TipoToken tt) {

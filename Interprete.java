@@ -1,5 +1,3 @@
-package interpreter;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -8,7 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class Interpreter {
+public class Interprete {
 
     static boolean existenErrores = false;
 
@@ -55,25 +53,30 @@ public class Interpreter {
     }
 
     private static void ejecutar(String source) {
+        try {
+            Scanner scanner = new Scanner(source);
+            List<Token> tokens = scanner.scan();
 
-        Scanner scanner = new Scanner(source);
-        List<Token> tokens = scanner.scan();
-        int i = 0;
+            int i = 0;
 
-        for (Token token : tokens) {
-            if (token.tipo == TipoToken.ERROR_LEXICAL) {
-                i++;
-                reportar(token.linea, token.columnaE, token.lexema);
+            for (Token token : tokens) {
+                if (token.tipo == TipoToken.ERROR_LEXICAL) {
+                    i++;
+                    reportar(token.linea, token.columnaE, token.lexema);
 
+                }
             }
-        }
 
-        if (i != 0) {
-            System.exit(0);
-        }
+            if (i != 0) {
+                System.exit(0);
+            }
 
-        Parser parser = new ASDR(tokens);
-        parser.parse();
+            parser parser = new ASDR(tokens);
+            parser.parse();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
 
     }
 

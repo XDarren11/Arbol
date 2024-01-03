@@ -1,5 +1,3 @@
-package interpreter;
-
 public class Token {
 
     final TipoToken tipo;
@@ -41,6 +39,6 @@ public class Token {
     }
 
     public String toString() {
-        return "<" + tipo + " " + lexema + " " + literal + " linea:" + linea + " Columna:" + columnaE + ">";
+        return "<" + tipo + " " + lexema + " " + literal + " linea:" + linea + " column:" + columnaE + ">";
     }
 }
