@@ -1,47 +1,53 @@
-package analizador;
+package src.parser;
 
+import src.analizador.*;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-public class ASDR implements parser {
+public class Parser {
 
+    private Token preanalisis;
     private int i = 0;
     private boolean hayErrores = false;
-    private Token preanalisis;
     private final List<Token> tokens;
 
-    public ASDR(List<Token> tokens) {
+    public Parser(List<Token> tokens) {
         this.tokens = tokens;
         preanalisis = this.tokens.get(i);
     }
 
-    @Override
     public boolean parse() {
 
-        PROGRAM();
+        List<Statement> arbol = PROGRAM();
 
         if (preanalisis.tipo == TipoToken.EOF && !hayErrores) {
-            System.out.println("Consulta correcta");
+            System.out.println("Correcto");
             return true;
         } else {
             System.out.println("Se encontraron errores");
         }
-
         return false;
     }
 
-    private void PROGRAM() {
-        DECLARATION();
+    private List<Statement> PROGRAM() {
+        List<Statement> statements = new ArrayList();
+        DECLARATION(statements);
+        return statements;
     }
 
-    private void DECLARATION() {
+    private void DECLARATION(List<Statement> statements) {
         if (hayErrores)
             return;
         if (preanalisis.tipo == TipoToken.FUN) {
-            FUN_DECL();
-            DECLARATION();
+            Statement stmt = FUN_DECL();
+            statements.add(stmt);
+            DECLARATION(statements);
         } else if (preanalisis.tipo == TipoToken.VAR) {
-            VAR_DECL();
-            DECLARATION();
+            Statement stmt = VAR_DECL();
+            statements.add(stmt);
+            DECLARATION(statements);
         } else if (preanalisis.tipo == TipoToken.BANG ||
                 preanalisis.tipo == TipoToken.FOR ||
                 preanalisis.tipo == TipoToken.IF ||
@@ -57,35 +63,39 @@ public class ASDR implements parser {
                 preanalisis.tipo == TipoToken.STRING ||
                 preanalisis.tipo == TipoToken.IDENTIFIER ||
                 preanalisis.tipo == TipoToken.LEFT_PAREN) {
-            STATEMENT();
-            DECLARATION();
+            Statement stmt = STATEMENT();
+            statements.add(stmt);
+            DECLARATION(statements);
         }
 
     }
 
-    private void FUN_DECL() {
+    private Statement FUN_DECL() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.FUN) {
             match(TipoToken.FUN);
-            FUNCTION();
+            return FUNCTION();
         } else {
             hayErrores = true;
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba 'fun'.");
+            return null;
         }
     }
 
-    private void VAR_DECL() {
+    private Statement VAR_DECL() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.VAR) {
             match(TipoToken.VAR);
             if (preanalisis.tipo == TipoToken.IDENTIFIER) {
                 match(TipoToken.IDENTIFIER);
-                VAR_INIT();
+                Token name = tokens.get(i - 1);
+                Expression exp = VAR_INIT();
                 if (preanalisis.tipo == TipoToken.SEMICOLON) {
                     match(TipoToken.SEMICOLON);
+                    return new StmtVar(name, exp);
                 } else {
                     hayErrores = true;
                     System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
@@ -101,68 +111,87 @@ public class ASDR implements parser {
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba 'var'.");
         }
+        return null;
     }
 
-    private void VAR_INIT() {
+    private Expression VAR_INIT() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.EQUAL) {
             match(TipoToken.EQUAL);
-            EXPRESSION();
+            return EXPRESSION();
         }
+        return null;
     }
 
-    private void STATEMENT() {
+    private Statement STATEMENT() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.BANG || preanalisis.tipo == TipoToken.MINUS
                 || preanalisis.tipo == TipoToken.TRUE || preanalisis.tipo == TipoToken.FALSE
                 || preanalisis.tipo == TipoToken.NULL || preanalisis.tipo == TipoToken.NUMBER
                 || preanalisis.tipo == TipoToken.STRING || preanalisis.tipo == TipoToken.IDENTIFIER
                 || preanalisis.tipo == TipoToken.LEFT_PAREN) {
-            EXPR_STMT();
+            return EXPR_STMT();
         } else if (preanalisis.tipo == TipoToken.FOR) {
-            FOR_STMT();
+            return FOR_STMT();
         } else if (preanalisis.tipo == TipoToken.IF) {
-            IF_STMT();
+            return IF_STMT();
         } else if (preanalisis.tipo == TipoToken.PRINT) {
-            PRINT_STMT();
+            return PRINT_STMT();
         } else if (preanalisis.tipo == TipoToken.RETURN) {
-            RETURN_STMT();
+            return RETURN_STMT();
         } else if (preanalisis.tipo == TipoToken.WHILE) {
-            WHILE_STMT();
+            return WHILE_STMT();
         } else if (preanalisis.tipo == TipoToken.LEFT_BRACE) {
-            BLOCK();
+            return BLOCK();
         }
+        return null;
     }
 
-    private void EXPR_STMT() {
+    private Statement EXPR_STMT() {
         if (hayErrores)
-            return;
+            return null;
         EXPRESSION();
         if (preanalisis.tipo == TipoToken.SEMICOLON) {
+            Expression expr = EXPRESSION();
             match(TipoToken.SEMICOLON);
+            return new StmtExpression(expr);
         } else {
             hayErrores = true;
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba ';'.");
         }
+        return null;
     }
 
-    void FOR_STMT() {
+    Statement FOR_STMT() {
         if (hayErrores)
-            return;
+            return null;
 
         if (preanalisis.tipo == TipoToken.FOR) {
             match(TipoToken.FOR);
             if (preanalisis.tipo == TipoToken.LEFT_PAREN) {
                 match(TipoToken.LEFT_PAREN);
-                FOR_STMT_1();
-                FOR_STMT_2();
-                FOR_STMT_3();
+                Statement initializer = FOR_STMT_1();
+                Expression condition = FOR_STMT_2();
+                Expression increment = FOR_STMT_3();
                 if (preanalisis.tipo == TipoToken.RIGHT_PAREN) {
                     match(TipoToken.RIGHT_PAREN);
-                    STATEMENT();
+                    Statement body = STATEMENT();
+
+                    if (increment != null) {
+                        body = new StmtBlock(Arrays.asList(body, new StmtExpression(increment)));
+                    }
+                    if (condition == null) {
+                        condition = new ExprLiteral(true);
+                    }
+                    body = new StmtLoop(condition, body);
+                    if (initializer != null) {
+                        body = new StmtBlock(Arrays.asList(initializer, body));
+
+                    }
+                    return body;
                 } else {
                     hayErrores = true;
                     System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
@@ -178,74 +207,85 @@ public class ASDR implements parser {
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba 'for'.");
         }
+        return null;
     }
 
-    void FOR_STMT_1() {
+    Statement FOR_STMT_1() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.VAR) {
-            VAR_DECL();
+            return VAR_DECL();
         } else if (preanalisis.tipo == TipoToken.BANG || preanalisis.tipo == TipoToken.MINUS
                 || preanalisis.tipo == TipoToken.TRUE || preanalisis.tipo == TipoToken.FALSE
                 || preanalisis.tipo == TipoToken.NULL || preanalisis.tipo == TipoToken.NUMBER
                 || preanalisis.tipo == TipoToken.STRING || preanalisis.tipo == TipoToken.IDENTIFIER
                 || preanalisis.tipo == TipoToken.LEFT_PAREN) {
-            EXPR_STMT();
+            return EXPR_STMT();
         } else if (preanalisis.tipo == TipoToken.SEMICOLON) {
             match(TipoToken.SEMICOLON);
+            return null;
         } else {
             hayErrores = true;
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba 'var', una 'expresion' ó ';'.");
         }
+        return null;
 
     }
 
-    void FOR_STMT_2() {
+    Expression FOR_STMT_2() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.BANG || preanalisis.tipo == TipoToken.MINUS
                 || preanalisis.tipo == TipoToken.TRUE || preanalisis.tipo == TipoToken.FALSE
                 || preanalisis.tipo == TipoToken.NULL || preanalisis.tipo == TipoToken.NUMBER
                 || preanalisis.tipo == TipoToken.STRING || preanalisis.tipo == TipoToken.IDENTIFIER
                 || preanalisis.tipo == TipoToken.LEFT_PAREN) {
-            EXPRESSION();
-            if (preanalisis.tipo == TipoToken.SEMICOLON) {
-                match(TipoToken.SEMICOLON);
-            }
+            Expression expr = EXPRESSION();
+            match(TipoToken.SEMICOLON);
+            return expr;
+
         } else if (preanalisis.tipo == TipoToken.SEMICOLON) {
             match(TipoToken.SEMICOLON);
+            return null;
         } else {
             hayErrores = true;
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba ';'.");
         }
+        return null;
     }
 
-    void FOR_STMT_3() {
+    Expression FOR_STMT_3() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.BANG || preanalisis.tipo == TipoToken.MINUS
                 || preanalisis.tipo == TipoToken.TRUE || preanalisis.tipo == TipoToken.FALSE
                 || preanalisis.tipo == TipoToken.NULL || preanalisis.tipo == TipoToken.NUMBER
                 || preanalisis.tipo == TipoToken.STRING || preanalisis.tipo == TipoToken.IDENTIFIER
                 || preanalisis.tipo == TipoToken.LEFT_PAREN) {
-            EXPRESSION();
+            return EXPRESSION();
         }
+        return null;
     }
 
-    void IF_STMT() {
+    public Statement IF_STMT() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.IF) {
             match(TipoToken.IF);
             if (preanalisis.tipo == TipoToken.LEFT_PAREN) {
                 match(TipoToken.LEFT_PAREN);
-                EXPRESSION();
+
+                Expression exp = EXPRESSION();
                 if (preanalisis.tipo == TipoToken.RIGHT_PAREN) {
                     match(TipoToken.RIGHT_PAREN);
-                    STATEMENT();
-                    ELSE_STATEMENT();
+
+                    Statement thenBranch = STATEMENT();
+                    Statement elseBranch = ELSE_STATEMENT();
+
+                    return new StmtIf(exp, thenBranch, elseBranch);
+
                 } else {
                     hayErrores = true;
                     System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
@@ -261,26 +301,29 @@ public class ASDR implements parser {
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba 'if'.");
         }
+        return null;
     }
 
-    void ELSE_STATEMENT() {
+    public Statement ELSE_STATEMENT() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.ELSE) {
             match(TipoToken.ELSE);
-            STATEMENT();
+            return STATEMENT();
         }
-
+        return null;
     }
 
-    void PRINT_STMT() {
+    public Statement PRINT_STMT() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.PRINT) {
             match(TipoToken.PRINT);
-            EXPRESSION();
+            Expression exp = EXPRESSION();
+            StmtPrint stm = new StmtPrint(exp);
             if (preanalisis.tipo == TipoToken.SEMICOLON) {
                 match(TipoToken.SEMICOLON);
+                return stm;
             } else {
                 hayErrores = true;
                 System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
@@ -291,16 +334,18 @@ public class ASDR implements parser {
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba 'print'.");
         }
+        return null;
     }
 
-    void RETURN_STMT() {
+    public Statement RETURN_STMT() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.RETURN) {
             match(TipoToken.RETURN);
-            RETURN_EXP_OPC();
+            Expression exp = RETURN_EXP_OPC();
             if (preanalisis.tipo == TipoToken.SEMICOLON) {
                 match(TipoToken.SEMICOLON);
+                return new StmtReturn(exp);
             } else {
                 hayErrores = true;
                 System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
@@ -311,32 +356,35 @@ public class ASDR implements parser {
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba 'return'.");
         }
+        return null;
     }
 
-    void RETURN_EXP_OPC() {
+    public Expression RETURN_EXP_OPC() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.BANG || preanalisis.tipo == TipoToken.MINUS
                 || preanalisis.tipo == TipoToken.TRUE || preanalisis.tipo == TipoToken.FALSE
                 || preanalisis.tipo == TipoToken.NULL || preanalisis.tipo == TipoToken.NUMBER
                 || preanalisis.tipo == TipoToken.STRING || preanalisis.tipo == TipoToken.IDENTIFIER
                 || preanalisis.tipo == TipoToken.LEFT_PAREN) {
-            EXPRESSION();
+            return EXPRESSION();
         }
-
+        // EPSILON
+        return null;
     }
 
-    void WHILE_STMT() {
+    public Statement WHILE_STMT() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.WHILE) {
             match(TipoToken.WHILE);
             if (preanalisis.tipo == TipoToken.LEFT_PAREN) {
                 match(TipoToken.LEFT_PAREN);
-                EXPRESSION();
+                Expression exp = EXPRESSION();
                 if (preanalisis.tipo == TipoToken.RIGHT_PAREN) {
                     match(TipoToken.RIGHT_PAREN);
-                    STATEMENT();
+                    Statement statement = STATEMENT();
+                    return new StmtLoop(exp, statement);
                 } else {
                     hayErrores = true;
                     System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
@@ -352,16 +400,19 @@ public class ASDR implements parser {
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba 'while'");
         }
+        return null;
     }
 
-    void BLOCK() {
+    public Statement BLOCK() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.LEFT_BRACE) {
             match(TipoToken.LEFT_BRACE);
-            DECLARATION();
+            List<Statement> statements = new ArrayList<>();
+            DECLARATION(statements);
             if (preanalisis.tipo == TipoToken.RIGHT_BRACE) {
                 match(TipoToken.RIGHT_BRACE);
+                return new StmtBlock(statements);
             } else {
                 hayErrores = true;
                 System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
@@ -372,96 +423,115 @@ public class ASDR implements parser {
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba '{'.");
         }
+        return null;
     }
 
-    public void EXPRESSION() {
+    public Expression EXPRESSION() {
+
         if (hayErrores)
-            return;
-        ASSIGNMENT();
+            return null;
+        return ASSIGNMENT();
+
     }
 
-    public void ASSIGNMENT() {
+    public Expression ASSIGNMENT() {
         if (hayErrores)
-            return;
-        LOGIC_OR();
-        ASSIGNMENT_OPC();
+            return null;
+        Expression exp = LOGIC_OR();
+        return ASSIGNMENT_OPC(exp);
     }
 
-    public void ASSIGNMENT_OPC() {
+    public Expression ASSIGNMENT_OPC(Expression exp) {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.EQUAL) {
             match(TipoToken.EQUAL);
-            EXPRESSION();
+            Token previous = tokens.get(i - 1);
+            Expression expR = EXPRESSION();
+            return new ExprAssign(previous, expR);
         }
-
+        return exp;
     }
 
-    public void LOGIC_OR() {
+    public Expression LOGIC_OR() {
         if (hayErrores)
-            return;
-        LOGIC_AND();
-        LOGIC_OR_2();
+            return null;
+        Expression exp = LOGIC_AND();
+        exp = LOGIC_OR_2(exp);
+        return exp;
     }
 
-    public void LOGIC_OR_2() {
+    public Expression LOGIC_OR_2(Expression exp) {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.OR) {
             match(TipoToken.OR);
-            LOGIC_AND();
-            LOGIC_OR_2();
+            Token previous = tokens.get(i - 1);
+            Expression expR = LOGIC_AND();
+            ExprLogical expI = new ExprLogical(exp, previous, expR);
+            return LOGIC_OR_2(expI);
         }
+        return null;
     }
 
-    public void LOGIC_AND() {
+    public Expression LOGIC_AND() {
         if (hayErrores)
-            return;
-        EQUALITY();
-        LOGIC_AND_2();
+            return null;
+        Expression exp = EQUALITY();
+        exp = LOGIC_AND_2(exp);
+        return exp;
     }
 
-    public void LOGIC_AND_2() {
+    public Expression LOGIC_AND_2(Expression exp) {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.AND) {
             match(TipoToken.AND);
-            EQUALITY();
-            LOGIC_AND_2();
+            Token previous = tokens.get(i - 1);
+            Expression expR = EQUALITY();
+            ExprLogical expI = new ExprLogical(exp, previous, expR);
+            return LOGIC_AND_2(expI);
         }
+        return null;
     }
 
-    public void EQUALITY() {
+    public Expression EQUALITY() {
         if (hayErrores)
-            return;
-        COMPARISON();
-        EQUALITY_2();
+            return null;
+        Expression exp = COMPARISON();
+        exp = EQUALITY_2(exp);
+        return exp;
     }
 
-    public void EQUALITY_2() {
+    public Expression EQUALITY_2(Expression exp) {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.BANG_EQUAL) {
             match(TipoToken.BANG_EQUAL);
-            COMPARISON();
-            EQUALITY_2();
+            Token previous = tokens.get(i - 1);
+            Expression expR = COMPARISON();
+            ExprBinary expb = new ExprBinary(exp, previous, expR);
+            return EQUALITY_2(expb);
         } else if (preanalisis.tipo == TipoToken.EQUAL_EQUAL) {
             match(TipoToken.EQUAL_EQUAL);
-            COMPARISON();
-            EQUALITY_2();
+            Token previous = tokens.get(i - 1);
+            Expression expR = COMPARISON();
+            ExprBinary expb = new ExprBinary(exp, previous, expR);
+            return EQUALITY_2(expb);
         }
+        return null;
     }
 
-    public void COMPARISON() {
+    public Expression COMPARISON() {
         if (hayErrores)
-            return;
-        TERM();
-        COMPARISON_2();
+            return null;
+        Expression exp = TERM();
+        return COMPARISON_2(exp);
     }
 
-    public void COMPARISON_2() {
+    public Expression COMPARISON_2(Expression exp) {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.LESS
                 || preanalisis.tipo == TipoToken.LESS_EQUAL
                 || preanalisis.tipo == TipoToken.GREATER
@@ -471,54 +541,75 @@ public class ASDR implements parser {
             match(TipoToken.GREATER);
             match(TipoToken.GREATER_EQUAL);
 
-            TERM();
-            COMPARISON_2();
+            Token previous = tokens.get(i - 1);
+            Expression expR = TERM();
+            ExprBinary expI = new ExprBinary(exp, previous, expR);
+            return COMPARISON_2(expI);
         }
+        return null;
     }
 
-    public void TERM() {
+    public Expression TERM() {
         if (hayErrores)
-            return;
-        FACTOR();
-        TERM_2();
+            return null;
+        Expression exp = FACTOR();
+        return TERM_2(exp);
     }
 
-    public void TERM_2() {
+    public Expression TERM_2(Expression exp) {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.PLUS || preanalisis.tipo == TipoToken.MINUS) {
             match(TipoToken.MINUS);
             match(TipoToken.PLUS);
-            FACTOR();
-            TERM_2();
+            Token previous = tokens.get(i - 1);
+            Expression exR = FACTOR();
+            ExprBinary exb = new ExprBinary(exp, previous, exR);
+            return TERM_2(exb);
         }
+        return null;
     }
 
-    public void FACTOR() {
+    public Expression FACTOR() {
         if (hayErrores)
-            return;
-        UNARY();
-        FACTOR_2();
+            return null;
+        Expression exp = UNARY();
+        exp = FACTOR_2(exp);
+        return exp;
     }
 
-    public void FACTOR_2() {
+    public Expression FACTOR_2(Expression exp) {
         if (hayErrores)
-            return;
-        if (preanalisis.tipo == TipoToken.SLASH || preanalisis.tipo == TipoToken.STAR) {
+            return null;
+        if (preanalisis.tipo == TipoToken.SLASH) {
             match(TipoToken.SLASH);
+            Token previous = tokens.get(i - 1);
+            Expression expR = UNARY();
+            ExprBinary expb = new ExprBinary(exp, previous, expR);
+            return FACTOR_2(expb);
+        } else if (preanalisis.tipo == TipoToken.STAR) {
             match(TipoToken.STAR);
-            UNARY();
-            FACTOR_2();
+            Token previous = tokens.get(i - 1);
+            Expression expR = UNARY();
+            ExprBinary expb = new ExprBinary(exp, previous, expR);
+            return FACTOR_2(expb);
         }
+        return null;
     }
 
-    public void UNARY() {
+    public Expression UNARY() {
         if (hayErrores)
-            return;
-        if (preanalisis.tipo == TipoToken.BANG || preanalisis.tipo == TipoToken.MINUS) {
+            return null;
+        if (preanalisis.tipo == TipoToken.BANG) {
             match(TipoToken.BANG);
+            Token previous = tokens.get(i - 1);
+            Expression exp = UNARY();
+            return new ExprUnary(previous, exp);
+        } else if (preanalisis.tipo == TipoToken.MINUS) {
             match(TipoToken.MINUS);
-            UNARY();
+            Token previus = tokens.get(i - 1);
+            Expression exp = UNARY();
+            return new ExprUnary(previus, exp);
         } else if (preanalisis.tipo == TipoToken.TRUE ||
                 preanalisis.tipo == TipoToken.FALSE ||
                 preanalisis.tipo == TipoToken.NULL ||
@@ -526,59 +617,71 @@ public class ASDR implements parser {
                 preanalisis.tipo == TipoToken.STRING ||
                 preanalisis.tipo == TipoToken.IDENTIFIER ||
                 preanalisis.tipo == TipoToken.LEFT_PAREN) {
-            CALL();
+            return CALL();
         } else {
             hayErrores = true;
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba '!', '-', 'true', 'false', 'null', 'number', 'string' o 'identifier'.");
+            return null;
         }
     }
 
-    public void CALL() {
+    public Expression CALL() {
         if (hayErrores)
-            return;
-        PRIMARY();
-        CALL_2();
+            return null;
+        Expression exp = PRIMARY();
+        exp = CALL_2(exp);
+        return exp;
     }
 
-    public void CALL_2() {
+    public Expression CALL_2(Expression exp) {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.LEFT_PAREN) {
             match(TipoToken.LEFT_PAREN);
-            ARGUMENTS_OPC();
+            List<Expression> arguments = ARGUMENTS_OPC();
             if (preanalisis.tipo == TipoToken.RIGHT_PAREN) {
                 match(TipoToken.RIGHT_PAREN);
-                CALL_2();
+                ExprCallFunction ecf = new ExprCallFunction(exp, arguments);
+                return CALL_2(ecf);
             } else {
                 hayErrores = true;
                 System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                         + ". Se esperaba '('.");
             }
         }
+        return null;
+        // epsilon
     }
 
-    public void PRIMARY() {
+    public Expression PRIMARY() {
         if (hayErrores)
-            return;
-        if (preanalisis.tipo == TipoToken.TRUE ||
-                preanalisis.tipo == TipoToken.FALSE ||
-                preanalisis.tipo == TipoToken.NULL ||
-                preanalisis.tipo == TipoToken.NUMBER ||
-                preanalisis.tipo == TipoToken.STRING ||
-                preanalisis.tipo == TipoToken.IDENTIFIER) {
-
+            return null;
+        if (preanalisis.tipo == TipoToken.TRUE) {
             match(TipoToken.TRUE);
+            return new ExprLiteral(true);
+        } else if (preanalisis.tipo == TipoToken.FALSE) {
             match(TipoToken.FALSE);
-            match(TipoToken.NULL);
+            return new ExprLiteral(false);
+        } else if (preanalisis.tipo == TipoToken.NUMBER) {
             match(TipoToken.NUMBER);
+            return new ExprLiteral(preanalisis.literal);
+        } else if (preanalisis.tipo == TipoToken.STRING) {
             match(TipoToken.STRING);
+            return new ExprLiteral(preanalisis.literal);
+        } else if (preanalisis.tipo == TipoToken.IDENTIFIER) {
             match(TipoToken.IDENTIFIER);
+            return new ExprVariable(preanalisis.lexema);
+        } else if (preanalisis.tipo == TipoToken.NULL) {
+            match(TipoToken.NULL);
+            return new ExprLiteral(null);
         } else if (preanalisis.tipo == TipoToken.LEFT_PAREN) {
             match(TipoToken.LEFT_PAREN);
-            EXPRESSION();
+
+            Expression expr = EXPRESSION();
             if (preanalisis.tipo == TipoToken.RIGHT_PAREN) {
                 match(TipoToken.RIGHT_PAREN);
+                return new ExprGrouping(expr);
             } else {
                 hayErrores = true;
                 System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
@@ -589,20 +692,22 @@ public class ASDR implements parser {
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba 'true', 'false', 'null', 'number', 'string' o 'identifier'.");
         }
-
+        return null;
     }
 
-    private void FUNCTION() {
+    private Statement FUNCTION() {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.IDENTIFIER) {
             match(TipoToken.IDENTIFIER);
+            Token name = tokens.get(i - 1);
             if (preanalisis.tipo == TipoToken.LEFT_PAREN) {
                 match(TipoToken.LEFT_PAREN);
-                PARAMETERS_OPC();
+                List<Token> parameters = PARAMETERS_OPC();
                 if (preanalisis.tipo == TipoToken.RIGHT_PAREN) {
                     match(TipoToken.RIGHT_PAREN);
-                    BLOCK();
+                    StmtBlock body = (StmtBlock) BLOCK();
+                    return new StmtFunction(name, parameters, body);
                 } else {
                     hayErrores = true;
                     System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
@@ -618,65 +723,72 @@ public class ASDR implements parser {
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba 'identifier'.");
         }
+        return null;
     }
 
-    private void FUNCTIONS() {
+    private List<Token> PARAMETERS_OPC() {
         if (hayErrores)
-            return;
-        FUN_DECL();
-        FUNCTIONS();
+            return null;
+        return PARAMETERS();
     }
 
-    private void PARAMETERS_OPC() {
+    private List<Token> PARAMETERS() {
         if (hayErrores)
-            return;
-        PARAMETERS();
-    }
-
-    private void PARAMETERS() {
-        if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.IDENTIFIER) {
             match(TipoToken.IDENTIFIER);
-            PARAMETERS_2();
+            List<Token> parameters = new ArrayList<>();
+            parameters.add(tokens.get(i - 1));
+            PARAMETERS_2(parameters);
+            return parameters;
         } else {
             hayErrores = true;
             System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                     + ". Se esperaba 'identifier'.");
         }
+        return null;
     }
 
-    private void PARAMETERS_2() {
+    private List<Token> PARAMETERS_2(List<Token> parameters) {
         if (hayErrores)
-            return;
+            return null;
         if (preanalisis.tipo == TipoToken.COMMA) {
             match(TipoToken.COMMA);
             if (preanalisis.tipo == TipoToken.IDENTIFIER) {
                 match(TipoToken.IDENTIFIER);
-                PARAMETERS_2();
+                parameters.add(tokens.get(i - 1));
+                PARAMETERS_2(parameters);
             } else {
                 hayErrores = true;
                 System.out.println("Error en la línea " + preanalisis.linea + ", columna: " + preanalisis.columnaE
                         + ". Se esperaba 'identifier'.");
             }
         }
+        return null;
     }
 
-    private void ARGUMENTS_OPC() {
+    // ARGUMENTS_OPC -> EXPRESSION ARGUMENTS | e
+    private List<Expression> ARGUMENTS_OPC() {
         if (hayErrores)
-            return;
-        EXPRESSION();
-        ARGUMENTS();
+            return null;
+        List<Expression> expressions = new ArrayList<>();
+        Expression exp = EXPRESSION();
+        expressions.add(exp);
+        ARGUMENTS(expressions);
+        return expressions;
     }
 
-    private void ARGUMENTS() {
+    // ARGUMENTS -> , EXPRESSION ARGUMENTS | e
+    private void ARGUMENTS(List<Expression> expressions) {
         if (hayErrores)
             return;
         if (preanalisis.tipo == TipoToken.COMMA) {
             match(TipoToken.COMMA);
-            EXPRESSION();
-            ARGUMENTS();
+            Expression expr = EXPRESSION();
+            expressions.add(expr);
+            ARGUMENTS(expressions);
         }
+        // epsilon
     }
 
     private void match(TipoToken tt) {

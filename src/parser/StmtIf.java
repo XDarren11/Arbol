@@ -1,4 +1,4 @@
-package parser;
+package src.parser;
 
 public class StmtIf extends Statement {
     final Expression condition;

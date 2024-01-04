@@ -1,4 +1,3 @@
-package analizador;
 
 public class Token {
 

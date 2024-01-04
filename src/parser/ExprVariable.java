@@ -1,6 +1,6 @@
-package parser;
+package src.parser;
 
-import analizador.Token;
+import src.analizador.Token;
 
 class ExprVariable extends Expression {
     final Token name;

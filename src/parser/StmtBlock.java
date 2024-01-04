@@ -1,4 +1,4 @@
-package parser;
+package src.parser;
 
 import javax.swing.plaf.nimbus.State;
 import java.util.List;

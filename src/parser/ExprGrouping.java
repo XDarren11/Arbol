@@ -1,4 +1,4 @@
-package parser;
+package src.parser;
 
 public class ExprGrouping extends Expression {
     final Expression expression;

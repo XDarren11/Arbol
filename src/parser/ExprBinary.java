@@ -1,15 +1,16 @@
-package parser;
+package src.parser;
 
-import analizador.Token;
+import src.analizador.Token;
 
-public class ExprLogical extends Expression {
+public class ExprBinary extends Expression {
     final Expression left;
     final Token operator;
     final Expression right;
 
-    ExprLogical(Expression left, Token operator, Expression right) {
+    ExprBinary(Expression left, Token operator, Expression right) {
         this.left = left;
         this.operator = operator;
         this.right = right;
     }
+
 }

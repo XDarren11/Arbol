@@ -1,8 +1,8 @@
-package parser;
+package src.parser;
 
-import analizador.Token;
+import src.analizador.Token;
 
-import parser.Expression;
+import src.parser.Expression;
 
 public class ExprAssign extends Expression {
     final Token name;

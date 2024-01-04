@@ -1,6 +1,6 @@
-package parser;
+package src.parser;
 
-import analizador.Token;
+import src.analizador.Token;
 
 import java.util.List;
 

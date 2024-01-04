@@ -1,4 +1,4 @@
-package parser;
+package src.parser;
 
 class ExprLiteral extends Expression {
     final Object value;

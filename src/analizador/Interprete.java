@@ -1,5 +1,5 @@
-package analizador;
 
+import parser.Parser;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -73,7 +73,7 @@ public class Interprete {
                 System.exit(0);
             }
 
-            parser parser = new ASDR(tokens);
+            Parser parser = new Parser(tokens);
             parser.parse();
 
         } catch (Exception ex) {

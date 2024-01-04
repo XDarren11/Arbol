@@ -1,4 +1,4 @@
-package parser;
+package src.parser;
 
 public class StmtExpression extends Statement {
     final Expression expression;
