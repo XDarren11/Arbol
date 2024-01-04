@@ -1,3 +1,5 @@
+package analizador;
+
 public enum TipoToken {
 
     // ERROR Token

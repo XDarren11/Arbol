@@ -1,3 +1,5 @@
+package analizador;
+
 public class Token {
 
     final TipoToken tipo;

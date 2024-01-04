@@ -1,10 +1,9 @@
-public interface parser {
-    boolean parse();
-}
+package analizador;
 // import java.util.ArrayList;
+
 // import java.util.List;
 
-// public class Parser {
+// public class parser {
 
 // private int i = 0;
 // private boolean hayErrores = false;
@@ -39,3 +38,6 @@ public interface parser {
 // }
 // }
 // }
+public interface parser {
+    boolean parse();
+}
