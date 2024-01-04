@@ -1,4 +1,5 @@
-package analizador;
+package interpreter;
+
 import parser.Parser;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -13,19 +14,22 @@ public class Interprete {
     static boolean existenErrores = false;
 
     public static void main(String[] args) throws IOException {
-        if (args.length > 1) {
+        if(args.length > 1) {
             System.out.println("El uso correcto: interprete [archivo.txt]\n");
 
-            for (String a : args) {
-                System.out.println("\n\n\n//////////////////////////\n prueba:" + a + "\n");
+
+            for(String a:args){
+                System.out.println("\n\n\n//////////////////////////\n prueba:"+a+"\n");
                 ejecutarArchivo(a);
+
 
             }
             System.exit(64);
-        } else if (args.length == 1) {
+        } else if(args.length == 1){
             ejecutarArchivo(args[0]);
 
-        } else {
+
+        } else{
             System.out.println("prompt");
             ejecutarPrompt();
         }
@@ -36,55 +40,62 @@ public class Interprete {
         ejecutar(new String(bytes, Charset.defaultCharset()));
 
         // Se indica que existe un error
-        if (existenErrores)
-            System.exit(65);
+        if(existenErrores) System.exit(65);
     }
 
     private static void ejecutarPrompt() throws IOException {
         InputStreamReader input = new InputStreamReader(System.in);
         BufferedReader reader = new BufferedReader(input);
 
-        for (;;) {
+        for(;;){
             System.out.print(">>> ");
             String linea = reader.readLine();
-            if (linea == null)
-                break; // Presionar Ctrl + D
+            if(linea == null) break; // Presionar Ctrl + D
             ejecutar(linea);
             existenErrores = false;
         }
     }
 
     private static void ejecutar(String source) {
-        try {
+        try{
             Scanner scanner = new Scanner(source);
             List<Token> tokens = scanner.scan();
 
-            int i = 0;
+            int i=0;
 
-            for (Token token : tokens) {
-                if (token.tipo == TipoToken.ERROR_LEXICAL) {
+            for(Token token : tokens){
+                if(token.tipo==TipoToken.ERROR_LEXICAL){
                     i++;
-                    reportar(token.linea, token.columnaE, token.lexema);
+                    reportar(token.linea,token.columnaE, token.lexema );
 
                 }
             }
 
-            if (i != 0) {
+            if (i!=0){
                 System.exit(0);
             }
 
             Parser parser = new Parser(tokens);
             parser.parse();
 
-        } catch (Exception ex) {
+        }
+        catch (Exception ex){
             ex.printStackTrace();
         }
 
     }
 
-    private static void reportar(int linea, Integer posicion, Object mensaje) {
+    /*
+    El método error se puede usar desde las distintas clases
+    para reportar los errores:
+    interpreter.Interprete.error;
+     */
+
+
+    private static void reportar(int linea, Integer posicion, Object mensaje){
         System.err.println(
-                "[linea " + linea + " posicion " + posicion + "] : " + mensaje);
+                "[linea " + linea + " posicion " + posicion + "] : " + mensaje
+        );
         existenErrores = true;
     }
 

@@ -1,6 +1,6 @@
-package src.parser;
+package parser;
 
-import analizador.*;
+import interpreter.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;

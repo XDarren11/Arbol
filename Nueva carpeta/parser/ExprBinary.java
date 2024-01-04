@@ -1,6 +1,6 @@
 package parser;
 
-import analizador.Token;
+import interpreter.Token;
 
 public class ExprBinary extends Expression {
     final Expression left;
